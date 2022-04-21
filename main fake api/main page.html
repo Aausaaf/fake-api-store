@@ -1,0 +1,236 @@
+<html>
+    <head>
+        <title>
+            fake Api Ecommerce website
+        </title>
+        <style>
+            #navbar{
+                
+                
+                background-color: aquamarine;
+                display: flex;
+                flex-direction: row-reverse;
+                padding: 20px
+            }
+            #navbar > * {
+                margin-left: 10px;
+                margin-right: 10px;
+                text-decoration: none;
+
+            }
+            #container{
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                grid-gap: 20px;
+                width: 90%;
+                margin: auto;
+                margin-top: 20px;
+                text-align: center;
+            }
+            #container > div{
+                padding: 10px;
+                border: 1px solid #cecece;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            img{
+                width: 150px;
+                height: 150px;
+                object-fit: cover;
+            }
+            #cart-count{
+                color: red;
+            }
+
+        </style>
+    </head>
+    <body>
+        <div id="navbar">
+            <div id="cart-count"></div>
+            <a href="indexpageof fake Api.html">Cart page</a>
+            
+        </div>
+        <div id="sort-filter" >
+            <select name="sort" id="sortButton" onchange="sortProducts()">
+                <option value="">SORT</option>
+                <option value="asc">LOW TO HIGH</option>
+                <option value="desc">HIGH TO LOW</option>
+
+            </select>
+    
+        
+            <select name="filter" id="filterButton" onchange="filterProducts()">
+                <option vaule="">FILTER</option>
+                <option vaule="0-50">0-50</option>
+                <option vaule="51-150">51-150</option>
+                <option vaule=">150">greater than 150</option>
+
+
+            </select>
+        </div>
+        <div id="container"></div>
+    </body>
+    <script>
+        var container= document.getElementById("container")
+        var sortButton = document.getElementById("sortButton")
+        var filterButton = document.getElementById("filterButton")
+        var cartcount = document.getElementById("cart-count")
+        var url = `https://fakestoreapi.com/products`;
+        if(localStorage.getItem("product") === null)
+        {
+            localStorage.setItem("product" ,JSON.stringify([]));
+        }
+        if(localStorage.getItem("cart") === null)
+        {
+            localStorage.setItem("cart" ,JSON.stringify([]));
+        }
+        updatecartcount(JSON.parse(localStorage.getItem("cart")));
+        updatedom();
+        function filterProducts()
+        {
+            var filtercriteria = filterButton.value;
+            var sortcriteria = sortButton.value;
+            var productList = JSON.parse(localStorage.getItem("product"));
+            var updatedproductlist = productList.filter((prod)=>{
+                if(filtercriteria === "0-50")
+                {
+                    return prod.price <= 50;
+                }
+                else if(filtercriteria ==="51-150")
+                {
+                    return prod.price > 50 && prod.price <= 150;
+                }
+                else if(filtercriteria ===">150")
+                {
+                    return prod.price > 150 
+                }
+                else{
+                    return true
+                }
+            }).sort((prodA,prodB)=>{
+                if(sortcriteria=="asc")
+                {
+                    return prodA.price - prodB.price;
+                }
+                else if(sortcriteria == "desc")
+                {
+                    return prodB.price - prodA.price
+                }
+            });
+            renderproducts(updatedproductlist)
+
+        }
+        function sortProducts()
+        {
+            var filtercriteria = filterButton.value;
+            var sortcriteria = sortButton.value;
+            var productList = JSON.parse(localStorage.getItem("product"));
+            var updatedproductlist = productList.sort((prodA,prodB)=>{
+                if(sortcriteria=="asc")
+                {
+                    return prodA.price - prodB.price;
+                }
+                else if(sortcriteria == "desc")
+                {
+                    return prodB.price - prodA.price
+                }
+            }).filter((prod)=>{
+                if(filtercriteria === "0-50")
+                {
+                    return prod.price <= 50;
+                }
+                else if(filtercriteria ==="51-150")
+                {
+                    return prod.price > 50 && prod.price <=  150;
+                }
+                else if(filtercriteria ===">150")
+                {
+                    return prod.price > 150 
+                }
+                else{
+                    return true
+                }
+            })
+            renderproducts(updatedproductlist)
+
+        }
+        async function updatedom()
+        {
+            try{
+                let productList ;
+                if(JSON.parse(localStorage.getItem("product")).length > 0 )
+                {
+                    productList = JSON.parse(localStorage.getItem("product"));
+                }
+                else
+                {
+                    productList  = await fetchproducts();
+                   localStorage.setItem("product",JSON.stringify(productList));
+                }
+                renderproducts(productList);
+            }
+            catch(err)
+            {
+                console.log(err)
+            }
+        }
+        async function fetchproducts()
+        {
+            try{
+                let res = await fetch(`https://fakestoreapi.com/products`)
+                let data = await res.json();
+                return data
+            }
+            catch(err){
+                console.log(err)
+            }
+        }
+        function updatecartcount(cart)
+        {
+              cartcount.textContent = cart.length;
+        }
+        function renderproducts(productData)
+        {
+            console.log(productData)
+            container.innerHTML = ""
+            productData.forEach((prod) => {
+                var productcart = document.createElement('div')
+                var image = document.createElement('img')
+                image.src=prod.image;
+                var title = document.createElement('p')
+                title.textContent = prod.title;
+                var price = document.createElement('p')
+                price.textContent = `INR ${prod.price}`;
+                var addtocartbutton = document.createElement('button');
+                addtocartbutton.textContent = "ADD TO CART";
+                addtocartbutton.onclick = function(){
+                    addtocart(prod)
+                };
+                productcart.append(image,title,price,addtocartbutton)
+                container.append(productcart)
+
+
+                
+            });
+        }
+        function addtocart(prod)
+        {
+            var cart = JSON.parse(localStorage.getItem("cart"))
+            var checkproductexist = cart.find((cartitem) => cartitem.id === prod.id);
+            if(checkproductexist)
+            {
+                alert(`Item has been already added to the card`);
+            }
+            else{
+                cart.push(prod)
+                localStorage.setItem("cart",JSON.stringify(cart));
+                updatecartcount(JSON.parse(localStorage.getItem("cart")));
+            }
+
+        }
+
+
+    </script>
+</html>
